@@ -7,11 +7,8 @@ int buffer[100];
 
 void openSample()
 {
-	//buffer = (int*)malloc(100*sizeof(int));
 	FILE *fptr;
 	fptr = fopen("sample.dat","r");
-	printf("Hello world!\n");
-
 	if(fptr == NULL)
 	{
 		printf("Error!");
@@ -20,8 +17,8 @@ void openSample()
     
 	fscanf(fptr,"%d", &N);
 	fscanf(fptr,"%d", &M);
-	printf("Value of N=%d", N);
-	printf("Value of M=%d", M);
+	printf("Number of pages: %d \n", N);
+	printf("Number of frames: %d \n", M);
 	//fscanf(fptr,"%d", &M); //newline char
 	int temp = 0;
 	int counter = 0;
@@ -32,16 +29,38 @@ void openSample()
 		buffer[counter] = temp;
 		counter++;
 	}
-	printf("\n Refernce String: \n");
+	printf("Size of refernce string: %d\n", counter-1);
+	printf("Refernce String: \n");
 	for(int i = 0; i < counter-1; i++)
 	{
 		printf("%d ", buffer[i]);
 	}
+	printf("\n\n");
+}
+
+void fifo()
+{
+	printf("\nFifo");
+	
+}
+
+void optimal()
+{
+	printf("\nOptimal");
+	
+}
+
+
+void leastUsed()
+{
+	printf("\nLeast");
+	
 }
 
 
 int main()
 {
 	openSample();
+	fifo();
 	return 0;
 }
