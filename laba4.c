@@ -4,6 +4,7 @@
 int N; //Number of virtual pages 
 int M; //Number of actual pages (page frame)
 int buffer[100]; 
+
 int refStringSize = 0;
 
 typedef struct Page 
@@ -15,6 +16,8 @@ typedef struct Page
 
 Page* pageList = NULL;
 
+
+//opens the sample data files and saves the data into the global varibles (N, M and buffer)
 void openSample()
 {
 	FILE *fptr;
@@ -49,6 +52,7 @@ void openSample()
 	printf("\n\n");
 }
 
+//init for the starting list, starts will all refernces -1
 void initList ()
 {
 	Page* pageListRef = NULL;
@@ -71,28 +75,152 @@ void initList ()
 	}
 }
 
+//frees list of memory 
+void freeList()
+{
+	Page* curr = pageList;
+	Page* prev;
+	while(curr->next != NULL)
+	{
+		prev = curr;
+		curr = curr->next;
+		free(prev);
+	}
+}
+
+//prints out the list 
 void ptrList()
+{
+	Page* curr = pageList;
+	//printf("Page Refernce: %d \n", pageList->refernce);
+	while(curr->next != NULL)
+	{
+		curr = curr->next;
+		printf("Refernce: %d   ", curr->refernce);
+	}
+	printf("\n");
+}
+
+//returns 1 if in list otherwise 0
+int inList(int ref)
 {
 	Page* curr = pageList;
 	while(curr->next != NULL)
 	{
-		printf("Refernce: %d \n", curr->refernce);
+		curr = curr->next;
+		if(curr->refernce == ref){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+//adds the paramter to the last value in the list, pops off the top values and replaces it with the second value in the list 
+void addPageFiFo(int ref)
+{
+	//pop off the top page and replace it
+	Page* curr = pageList;
+	if(curr->next == NULL){
+		printf("List to small");
+		return; 
+	}
+	curr = curr->next;
+	Page* toFree = pageList;
+	pageList = curr;
+	free(toFree); //frees up the old link 
+	//replace the last page with the new one 
+	while(curr->next != NULL) //goto the last node
+	{
 		curr = curr->next;
 	}
+	
+	//now at the last space in the list 
+	Page* pageListRef = NULL;
+	pageListRef = malloc(sizeof(Page));
+	pageListRef->refernce = ref;
+	//printf("Ref num: %d", pageListRef->refernce);
+	pageListRef->prev = curr;
+	pageListRef->next = NULL;
+	curr->next = pageListRef;
+	return;
+}
+
+
+void addNewPageLRU(int ref)
+{
+	//pop off the top page and replace it
+	Page* pageListRef = NULL;
+	pageListRef = malloc(sizeof(Page));
+	pageListRef->refernce = ref;
+	pageListRef->prev = NULL;
+	pageListRef->next = pageList;
+	pageList = pageListRef;
+	
+	//delete the last items
+	Page* curr = pageListRef;
+	Page* prev = pageListRef;
+	while(curr->next != NULL) //goto the last node
+	{
+		prev = curr;
+		curr = curr->next;
+	}
+	//goto the last page 
+	prev->next = NULL;
+	free(curr);
+	return;
+}
+
+void replacePageLRU(int ref)
+{
+	//pop off the top page and replace it
+	Page* pageListRef = NULL;
+	pageListRef = malloc(sizeof(Page));
+	pageListRef->refernce = ref;
+	pageListRef->prev = NULL;
+	pageListRef->next = pageList;
+	pageList = pageListRef;
+	
+	//delete the last items
+	Page* curr = pageListRef;
+	Page* previous = pageListRef;
+	while(curr->next != NULL) //goto the last node
+	{
+		previous = curr;
+		curr = curr->next;
+		if(curr->refernce == ref){
+			//found the right link  "curr"
+			break;
+		}
+	}
+	if(curr->next != NULL){
+		curr->next->prev = previous; //skip over curr
+	}
+	previous->next = curr->next; //skip over curr
+	free(curr);
+	return;
+	
 }
 
 void fifo()
 {
-	//printf("\nFifo");
+	printf("\nFIFO\n");
+	printf("------------------------------------------------------------\n");
+	int totalFaults = 0;
 	for(int i = 0; i < refStringSize; i++)
 	{
-	
-	
-	
-	
-	
+		if(inList(buffer[i]))
+		{
+			//no fault and do not add to list 
+		} else {
+			//fault and add to list 
+			addPageFiFo(buffer[i]);
+			totalFaults++;
+		}
+		ptrList();
 	}
-	
+	printf("------------------------------------------------------------\n");
+	printf("%d page-faults\n", totalFaults);
 }
 
 void optimal()
@@ -101,11 +229,27 @@ void optimal()
 	
 }
 
-
 void leastUsed()
 {
-	printf("\nLeast");
+	printf("\nLeast Used\n");
+	printf("------------------------------------------------------------\n");
+	int totalFaults = 0;
 	
+	for(int i = 0; i < refStringSize; i++)
+	{
+		if(inList(buffer[i]))
+		{
+			//no fault just replace
+			//replacePageLRU(buffer[i]);
+		} else {
+			//fault and add to list 
+			addNewPageLRU(buffer[i]);
+			totalFaults++;
+		}
+		ptrList();
+	}
+	printf("------------------------------------------------------------\n");
+	printf("%d page-faults\n", totalFaults);	
 }
 
 
@@ -113,8 +257,10 @@ int main()
 {
 	openSample();
 	initList();
-	ptrList();
-	
 	fifo();
+	freeList();
+	initList();
+	//leastUsed();
+	
 	return 0;
 }
