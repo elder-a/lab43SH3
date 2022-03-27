@@ -4,12 +4,15 @@
 int N; //Number of virtual pages 
 int M; //Number of actual pages (page frame)
 int buffer[100]; 
+int refStringSize = 0; //give you the size of the refernce string 
+long int lruCounter = 0;
 
-int refStringSize = 0;
+
 
 typedef struct Page 
 {
 	int refernce;
+	int time;
 	struct Page* next;
 	struct Page* prev;
 } Page;
@@ -58,15 +61,17 @@ void initList ()
 	Page* pageListRef = NULL;
 	pageList = malloc(sizeof(Page));
 	pageList->refernce = -1;
+	pageList->time = 0;
 	pageList->prev = NULL;
 	pageList->next = pageListRef;
 	
 	Page* pageListPrev = pageList;
 	
-	for(int i = 0; i < M; i++)
+	for(int i = 1; i < M; i++)
 	{
 		pageListRef = malloc(sizeof(Page));
 		pageListRef->refernce = -1;
+		pageListRef->time = 0; 
 		pageListRef->prev = pageListPrev;
 		pageListRef->next = NULL;
 		
@@ -95,9 +100,12 @@ void ptrList()
 	//printf("Page Refernce: %d \n", pageList->refernce);
 	while(curr->next != NULL)
 	{
-		curr = curr->next;
 		printf("Refernce: %d   ", curr->refernce);
+		//printf("Time: %d |", curr->time);//delete after
+		curr = curr->next;
 	}
+	printf("Refernce: %d   ", curr->refernce);
+	//printf("Time: %d |", curr->time);//delete after
 	printf("\n");
 }
 
@@ -105,6 +113,9 @@ void ptrList()
 int inList(int ref)
 {
 	Page* curr = pageList;
+	if(curr->refernce == ref){
+		return 1;
+	}
 	while(curr->next != NULL)
 	{
 		curr = curr->next;
@@ -112,8 +123,10 @@ int inList(int ref)
 			return 1;
 		}
 	}
+	
 	return 0;
 }
+
 
 
 //adds the paramter to the last value in the list, pops off the top values and replaces it with the second value in the list 
@@ -126,6 +139,7 @@ void addPageFiFo(int ref)
 		return; 
 	}
 	curr = curr->next;
+	curr->prev = NULL;
 	Page* toFree = pageList;
 	pageList = curr;
 	free(toFree); //frees up the old link 
@@ -146,60 +160,87 @@ void addPageFiFo(int ref)
 	return;
 }
 
+//returns the size of the list 
+int sizeList()
+{
+	int currSize = 0;
+	Page* curr = pageList;
+	if(curr->refernce == -1){
+		return 0; 
+	}
+	
+	while(curr->next != NULL && curr->refernce != -1)
+	{
+		curr = curr->next;
+		currSize++;
+	}
+	if(curr->refernce != -1){
+		currSize++;
+	}
+	return currSize;
+}
+
+void addToBack(int ref)
+{
+	Page* curr = pageList;
+	while(curr->next != NULL && curr->refernce != -1) //goto the last node
+	{
+		curr = curr->next;
+	}
+	curr->refernce = ref;
+	curr->time = lruCounter;
+}
+
+void replaceLRU(int ref)
+{
+	Page* curr = pageList;
+	int oldestTime = 1000;
+	Page* toChange;
+	while(curr->next != NULL ) //goto the last node
+	{
+		if(oldestTime > curr->time){
+			oldestTime = curr->time;
+			toChange = curr; 
+		}
+		curr = curr->next;
+	}
+	//have to check the last value
+	if(oldestTime > curr->time){
+		oldestTime = curr->time;
+		toChange = curr; 
+	}
+	toChange->refernce = ref;
+	toChange->time = lruCounter; 
+}
+
+void updateTime(int ref)
+{
+	Page* curr = pageList;
+	if(curr->refernce == ref){
+		curr->time = lruCounter;
+		return;
+	}
+	while(curr->next != NULL ) //goto the last node
+	{
+		curr = curr->next;
+		if(curr->refernce == ref){
+			curr->time = lruCounter;
+			return;
+		}
+	}
+}
 
 void addNewPageLRU(int ref)
 {
-	//pop off the top page and replace it
-	Page* pageListRef = NULL;
-	pageListRef = malloc(sizeof(Page));
-	pageListRef->refernce = ref;
-	pageListRef->prev = NULL;
-	pageListRef->next = pageList;
-	pageList = pageListRef;
-	
-	//delete the last items
-	Page* curr = pageListRef;
-	Page* prev = pageListRef;
-	while(curr->next != NULL) //goto the last node
+	if(sizeList() < M)
 	{
-		prev = curr;
-		curr = curr->next;
+		//just stick the value at end of list
+		addToBack(ref);
+	} else {
+		//replace an old value 
+		replaceLRU(ref);
+		
 	}
-	//goto the last page 
-	prev->next = NULL;
-	free(curr);
-	return;
-}
-
-void replacePageLRU(int ref)
-{
-	//pop off the top page and replace it
-	Page* pageListRef = NULL;
-	pageListRef = malloc(sizeof(Page));
-	pageListRef->refernce = ref;
-	pageListRef->prev = NULL;
-	pageListRef->next = pageList;
-	pageList = pageListRef;
-	
-	//delete the last items
-	Page* curr = pageListRef;
-	Page* previous = pageListRef;
-	while(curr->next != NULL) //goto the last node
-	{
-		previous = curr;
-		curr = curr->next;
-		if(curr->refernce == ref){
-			//found the right link  "curr"
-			break;
-		}
-	}
-	if(curr->next != NULL){
-		curr->next->prev = previous; //skip over curr
-	}
-	previous->next = curr->next; //skip over curr
-	free(curr);
-	return;
-	
 }
 
 void fifo()
@@ -237,16 +278,20 @@ void leastUsed()
 	
 	for(int i = 0; i < refStringSize; i++)
 	{
+	
 		if(inList(buffer[i]))
 		{
-			//no fault just replace
-			//replacePageLRU(buffer[i]);
+			//no fault just update the timer in the stored list 
+			updateTime(buffer[i]);
 		} else {
 			//fault and add to list 
 			addNewPageLRU(buffer[i]);
 			totalFaults++;
 		}
+		
 		ptrList();
+		lruCounter++;
+		
 	}
 	printf("------------------------------------------------------------\n");
 	printf("%d page-faults\n", totalFaults);	
@@ -257,10 +302,11 @@ int main()
 {
 	openSample();
 	initList();
+	ptrList();
 	fifo();
 	freeList();
 	initList();
-	//leastUsed();
+	leastUsed();
 	
 	return 0;
 }
