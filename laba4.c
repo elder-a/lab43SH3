@@ -86,13 +86,12 @@ void freeList()
 {
 	Page* curr = pageList;
 	Page* prev;
-	while(curr->next != NULL)
+	while(curr != NULL)
 	{
 		prev = curr;
 		curr = curr->next;
 		free(prev);
 	}
-	free(curr);
 }
 
 //prints out the list
@@ -115,15 +114,9 @@ void ptrList()
 int inList(int ref)
 {
 	Page* curr = pageList;
-	if(curr->refernce == ref){
-		return 1;
-	}
-	while(curr->next != NULL)
-	{
+	while (curr != NULL) {
+		if(curr->refernce == ref) return 1;
 		curr = curr->next;
-		if(curr->refernce == ref){
-			return 1;
-		}
 	}
 
 	return 0;
