@@ -139,6 +139,7 @@ void printPageStates(int (*pageStates)[M+1]) {
 
 
 //adds the paramter to the last value in the list, pops off the top values and replaces it with the second value in the list
+/* OLD ONE 
 void addPageFiFo(int ref)
 {
 	//pop off the top page and replace it
@@ -166,6 +167,32 @@ void addPageFiFo(int ref)
 	pageListRef->prev = curr;
 	pageListRef->next = NULL;
 	curr->next = pageListRef;
+	return;
+}
+*/
+//adds the paramter to the last value in the list, pops off the top values and replaces it with the second value in the list
+void addPageFiFo(int ref)
+{
+	//puch a new page into the list 
+	Page* pageListRef = NULL;
+	pageListRef = malloc(sizeof(Page));
+	pageListRef->refernce = ref;
+	pageListRef->prev = NULL;
+	pageListRef->next = pageList;
+	
+	Page* curr = pageList;
+	pageList = pageListRef;
+
+	Page* pagePrev = NULL;
+	//replace the last page with the new one
+	while(curr->next != NULL) //goto the last node
+	{
+		pagePrev = curr;
+		curr = curr->next;
+	}
+	pagePrev->next = NULL;
+	free(curr);
+	
 	return;
 }
 
