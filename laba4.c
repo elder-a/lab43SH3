@@ -94,22 +94,6 @@ void freeList()
 	}
 }
 
-//prints out the list
-void ptrList()
-{
-	Page* curr = pageList;
-	//printf("Page Refernce: %d \n", pageList->refernce);
-	while(curr->next != NULL)
-	{
-		printf("Refernce: %d   ", curr->refernce);
-		//printf("Time: %d |", curr->time);//delete after
-		curr = curr->next;
-	}
-	printf("Refernce: %d   ", curr->refernce);
-	//printf("Time: %d |", curr->time);//delete after
-	printf("\n");
-}
-
 //returns 1 if in list otherwise 0
 int inList(int ref)
 {
@@ -122,6 +106,36 @@ int inList(int ref)
 	return 0;
 }
 
+void writePagesToArray(int (*pageStates)[M+1], int index) {
+	Page* curr = pageList;
+	for (int i = 0; i < M; i++) {
+		pageStates[index][i] = curr->refernce;
+		curr = curr->next;
+	}
+}
+
+void printPageStates(int (*pageStates)[M+1]) {
+	for (int i = 0; i < refStringSize; i++) printf("%3.1d", buffer[i]);
+	printf("\n");
+	for (int i = 0; i < refStringSize; i++) printf("---");
+	printf("\n");
+
+	for (int j = 0; j < M; j++) {
+		for (int i = 0; i < refStringSize; i++) {
+			printf("%3.1d", pageStates[i][j]);
+		}
+		printf("\n");
+	}
+
+	for (int i = 0; i < refStringSize; i++) {
+		if (pageStates[i][3]) printf("  p");
+		else printf("   ");
+	}
+	printf("\n");
+
+	for (int i = 0; i < refStringSize; i++) printf("---");
+	printf("\n");
+}
 
 
 //adds the paramter to the last value in the list, pops off the top values and replaces it with the second value in the list
@@ -241,21 +255,23 @@ void addNewPageLRU(int ref)
 void fifo()
 {
 	printf("\nFIFO\n");
-	printf("------------------------------------------------------------\n");
 	int totalFaults = 0;
+	int pageStates[refStringSize][M+1];
 	for(int i = 0; i < refStringSize; i++)
 	{
 		if(inList(buffer[i]))
 		{
 			//no fault and do not add to list
+			pageStates[i][3] = 0;
 		} else {
 			//fault and add to list
 			addPageFiFo(buffer[i]);
 			totalFaults++;
+			pageStates[i][3] = 1;
 		}
-		ptrList();
+		writePagesToArray(pageStates, i);
 	}
-	printf("------------------------------------------------------------\n");
+	printPageStates(pageStates);
 	printf("%d page-faults\n", totalFaults);
 }
 
@@ -288,36 +304,6 @@ void swapOutHighestLabelPage(int pageReference) {
 	highestLabelPage->refernce = pageReference;
 }
 
-void writePagesToArray(int (*pageStates)[M+1], int index) {
-	Page* curr = pageList;
-	for (int i = 0; i < M; i++) {
-		pageStates[index][i] = curr->refernce;
-		curr = curr->next;
-	}
-}
-
-void printPageStates(int (*pageStates)[M+1]) {
-	for (int i = 0; i < refStringSize; i++) printf("%3.1d", buffer[i]);
-	printf("\n");
-	for (int i = 0; i < refStringSize; i++) printf("---");
-	printf("\n");
-
-	for (int j = 0; j < M; j++) {
-		for (int i = 0; i < refStringSize; i++) {
-			printf("%3.1d", pageStates[i][j]);
-		}
-		printf("\n");
-	}
-
-	for (int i = 0; i < refStringSize; i++) {
-		if (pageStates[i][3]) printf("  p");
-		else printf("   ");
-	}
-	printf("\n");
-
-	for (int i = 0; i < refStringSize; i++) printf("---");
-	printf("\n");
-}
 
 void optimal()
 {
@@ -345,8 +331,8 @@ void optimal()
 void leastUsed()
 {
 	printf("\nLeast Used\n");
-	printf("------------------------------------------------------------\n");
 	int totalFaults = 0;
+	int pageStates[refStringSize][M+1];
 
 	for(int i = 0; i < refStringSize; i++)
 	{
@@ -355,17 +341,17 @@ void leastUsed()
 		{
 			//no fault just update the timer in the stored list
 			updateTime(buffer[i]);
+			pageStates[i][3] = 0;
 		} else {
 			//fault and add to list
 			addNewPageLRU(buffer[i]);
 			totalFaults++;
+			pageStates[i][3] = 1;
 		}
-
-		ptrList();
+		writePagesToArray(pageStates, i);
 		lruCounter++;
-
 	}
-	printf("------------------------------------------------------------\n");
+	printPageStates(pageStates);
 	printf("%d page-faults\n", totalFaults);
 }
 
@@ -375,7 +361,6 @@ int main()
 	openSample();
 
 	initList();
-	ptrList();
 	fifo();
 	freeList();
 
