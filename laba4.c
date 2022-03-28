@@ -47,11 +47,11 @@ void openSample()
 		counter++;
 	}
 	refStringSize = counter-1;
-	printf("Size of refernce string: %d\n", counter-1);
-	printf("Refernce String: \n");
+	printf("Size of reference string: %d\n", counter-1);
+	printf("Reference String: \n");
 	for(int i = 0; i < counter-1; i++)
 	{
-		printf("%d ", buffer[i]);
+		printf("%2.1d", buffer[i]);
 	}
 	printf("\n\n");
 }
@@ -288,22 +288,56 @@ void swapOutHighestLabelPage(int pageReference) {
 	highestLabelPage->refernce = pageReference;
 }
 
+void writePagesToArray(int (*pageStates)[M+1], int index) {
+	Page* curr = pageList;
+	for (int i = 0; i < M; i++) {
+		pageStates[index][i] = curr->refernce;
+		curr = curr->next;
+	}
+}
+
+void printPageStates(int (*pageStates)[M+1]) {
+	for (int i = 0; i < refStringSize; i++) printf("%3.1d", buffer[i]);
+	printf("\n");
+	for (int i = 0; i < refStringSize; i++) printf("---");
+	printf("\n");
+
+	for (int j = 0; j < M; j++) {
+		for (int i = 0; i < refStringSize; i++) {
+			printf("%3.1d", pageStates[i][j]);
+		}
+		printf("\n");
+	}
+
+	for (int i = 0; i < refStringSize; i++) {
+		if (pageStates[i][3]) printf("  p");
+		else printf("   ");
+	}
+	printf("\n");
+
+	for (int i = 0; i < refStringSize; i++) printf("---");
+	printf("\n");
+}
+
 void optimal()
 {
 	printf("\nOptimal\n");
-	printf("------------------------------------------------------------\n");
 
 	int totalFaults = 0;
+	int pageStates[refStringSize][M+1];
 	for (int i = 0; i < refStringSize; i++) {
 		if (!inList(buffer[i])) {
 			totalFaults++;
 			calculatePageLabels(i);
 			swapOutHighestLabelPage(buffer[i]);
+			pageStates[i][3] = 1;
+		} else {
+			pageStates[i][3] = 0;
 		}
-		ptrList();
+		writePagesToArray(pageStates, i);
 	}
 
-	printf("------------------------------------------------------------\n");
+	printPageStates(pageStates);
 	printf("%d page-faults\n", totalFaults);
 
 }
