@@ -128,7 +128,7 @@ void printPageStates(int (*pageStates)[M+1]) {
 	}
 
 	for (int i = 0; i < refStringSize; i++) {
-		if (pageStates[i][3]) printf("  p");
+		if (pageStates[i][M]) printf("  p");
 		else printf("   ");
 	}
 	printf("\n");
@@ -139,7 +139,7 @@ void printPageStates(int (*pageStates)[M+1]) {
 
 
 //adds the paramter to the last value in the list, pops off the top values and replaces it with the second value in the list
-/* OLD ONE 
+/* OLD ONE
 void addPageFiFo(int ref)
 {
 	//pop off the top page and replace it
@@ -173,13 +173,13 @@ void addPageFiFo(int ref)
 //adds the paramter to the last value in the list, pops off the top values and replaces it with the second value in the list
 void addPageFiFo(int ref)
 {
-	//puch a new page into the list 
+	//puch a new page into the list
 	Page* pageListRef = NULL;
 	pageListRef = malloc(sizeof(Page));
 	pageListRef->refernce = ref;
 	pageListRef->prev = NULL;
 	pageListRef->next = pageList;
-	
+
 	Page* curr = pageList;
 	pageList = pageListRef;
 
@@ -192,7 +192,7 @@ void addPageFiFo(int ref)
 	}
 	pagePrev->next = NULL;
 	free(curr);
-	
+
 	return;
 }
 
@@ -289,12 +289,12 @@ void fifo()
 		if(inList(buffer[i]))
 		{
 			//no fault and do not add to list
-			pageStates[i][3] = 0;
+			pageStates[i][M] = 0;
 		} else {
 			//fault and add to list
 			addPageFiFo(buffer[i]);
 			totalFaults++;
-			pageStates[i][3] = 1;
+			pageStates[i][M] = 1;
 		}
 		writePagesToArray(pageStates, i);
 	}
@@ -343,9 +343,9 @@ void optimal()
 			totalFaults++;
 			calculatePageLabels(i);
 			swapOutHighestLabelPage(buffer[i]);
-			pageStates[i][3] = 1;
+			pageStates[i][M] = 1;
 		} else {
-			pageStates[i][3] = 0;
+			pageStates[i][M] = 0;
 		}
 		writePagesToArray(pageStates, i);
 	}
@@ -368,12 +368,12 @@ void leastUsed()
 		{
 			//no fault just update the timer in the stored list
 			updateTime(buffer[i]);
-			pageStates[i][3] = 0;
+			pageStates[i][M] = 0;
 		} else {
 			//fault and add to list
 			addNewPageLRU(buffer[i]);
 			totalFaults++;
-			pageStates[i][3] = 1;
+			pageStates[i][M] = 1;
 		}
 		writePagesToArray(pageStates, i);
 		lruCounter++;
