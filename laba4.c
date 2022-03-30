@@ -3,25 +3,25 @@
 
 int N; //Number of virtual pages
 int M; //Number of actual pages (page frame)
-int buffer[100];
-int refStringSize = 0; //give you the size of the refernce string
+int referenceString[100];
+int refStringSize; //give you the size of the reference string
 long int lruCounter = 0;
 
 
 
-typedef struct Page
+typedef struct PageFrame
 {
-	int refernce;
+	int pageNumber;
 	int time;
 	int label;
-	struct Page* next;
-	struct Page* prev;
-} Page;
+	struct PageFrame* next;
+	struct PageFrame* prev;
+} PageFrame;
 
-Page* pageList = NULL;
+PageFrame* pageFrameList = NULL;
 
 
-//opens the sample data files and saves the data into the global varibles (N, M and buffer)
+//opens the sample data files and saves the data into the global varibles (N, M and referenceString)
 void openSample()
 {
 	FILE *fptr;
@@ -36,22 +36,21 @@ void openSample()
 	fscanf(fptr,"%d", &M);
 	printf("Number of pages: %d \n", N);
 	printf("Number of frames: %d \n", M);
-	//fscanf(fptr,"%d", &M); //newline char
 	int temp = 0;
 	int counter = 0;
 	while(temp != -1)
 	{
 		fscanf(fptr,"%d", &temp); //newline char
-		//printf("Temp: %d", temp);
-		buffer[counter] = temp;
+		referenceString[counter] = temp;
 		counter++;
 	}
+	fclose(fptr);
 	refStringSize = counter-1;
 	printf("Size of reference string: %d\n", counter-1);
 	printf("Reference String: \n");
 	for(int i = 0; i < counter-1; i++)
 	{
-		printf("%2.1d", buffer[i]);
+		printf("%2.1d", referenceString[i]);
 	}
 	printf("\n\n");
 }
@@ -59,19 +58,19 @@ void openSample()
 //init for the starting list, starts will all refernces -1
 void initList ()
 {
-	Page* pageListRef = NULL;
-	pageList = malloc(sizeof(Page));
-	pageList->refernce = -1;
-	pageList->time = 0;
-	pageList->prev = NULL;
-	pageList->next = pageListRef;
+	PageFrame* pageListRef = NULL;
+	pageFrameList = malloc(sizeof(PageFrame));
+	pageFrameList->pageNumber = -1;
+	pageFrameList->time = 0;
+	pageFrameList->prev = NULL;
+	pageFrameList->next = pageListRef;
 
-	Page* pageListPrev = pageList;
+	PageFrame* pageListPrev = pageFrameList;
 
 	for(int i = 1; i < M; i++)
 	{
-		pageListRef = malloc(sizeof(Page));
-		pageListRef->refernce = -1;
+		pageListRef = malloc(sizeof(PageFrame));
+		pageListRef->pageNumber = -1;
 		pageListRef->time = 0;
 		pageListRef->prev = pageListPrev;
 		pageListRef->next = NULL;
@@ -84,8 +83,8 @@ void initList ()
 //frees list of memory
 void freeList()
 {
-	Page* curr = pageList;
-	Page* prev;
+	PageFrame* curr = pageFrameList;
+	PageFrame* prev;
 	while(curr != NULL)
 	{
 		prev = curr;
@@ -97,9 +96,9 @@ void freeList()
 //returns 1 if in list otherwise 0
 int inList(int ref)
 {
-	Page* curr = pageList;
+	PageFrame* curr = pageFrameList;
 	while (curr != NULL) {
-		if(curr->refernce == ref) return 1;
+		if(curr->pageNumber == ref) return 1;
 		curr = curr->next;
 	}
 
@@ -107,15 +106,15 @@ int inList(int ref)
 }
 
 void writePagesToArray(int (*pageStates)[M+1], int index) {
-	Page* curr = pageList;
+	PageFrame* curr = pageFrameList;
 	for (int i = 0; i < M; i++) {
-		pageStates[index][i] = curr->refernce;
+		pageStates[index][i] = curr->pageNumber;
 		curr = curr->next;
 	}
 }
 
 void printPageStates(int (*pageStates)[M+1]) {
-	for (int i = 0; i < refStringSize; i++) printf("%3.1d", buffer[i]);
+	for (int i = 0; i < refStringSize; i++) printf("%3.1d", referenceString[i]);
 	printf("\n");
 	for (int i = 0; i < refStringSize; i++) printf("---");
 	printf("\n");
@@ -137,53 +136,20 @@ void printPageStates(int (*pageStates)[M+1]) {
 	printf("\n");
 }
 
-
-//adds the paramter to the last value in the list, pops off the top values and replaces it with the second value in the list
-/* OLD ONE
-void addPageFiFo(int ref)
-{
-	//pop off the top page and replace it
-	Page* curr = pageList;
-	if(curr->next == NULL){
-		printf("List to small");
-		return;
-	}
-	curr = curr->next;
-	curr->prev = NULL;
-	Page* toFree = pageList;
-	pageList = curr;
-	free(toFree); //frees up the old link
-	//replace the last page with the new one
-	while(curr->next != NULL) //goto the last node
-	{
-		curr = curr->next;
-	}
-
-	//now at the last space in the list
-	Page* pageListRef = NULL;
-	pageListRef = malloc(sizeof(Page));
-	pageListRef->refernce = ref;
-	//printf("Ref num: %d", pageListRef->refernce);
-	pageListRef->prev = curr;
-	pageListRef->next = NULL;
-	curr->next = pageListRef;
-	return;
-}
-*/
 //adds the paramter to the last value in the list, pops off the top values and replaces it with the second value in the list
 void addPageFiFo(int ref)
 {
 	//puch a new page into the list
-	Page* pageListRef = NULL;
-	pageListRef = malloc(sizeof(Page));
-	pageListRef->refernce = ref;
+	PageFrame* pageListRef = NULL;
+	pageListRef = malloc(sizeof(PageFrame));
+	pageListRef->pageNumber = ref;
 	pageListRef->prev = NULL;
-	pageListRef->next = pageList;
+	pageListRef->next = pageFrameList;
 
-	Page* curr = pageList;
-	pageList = pageListRef;
+	PageFrame* curr = pageFrameList;
+	pageFrameList = pageListRef;
 
-	Page* pagePrev = NULL;
+	PageFrame* pagePrev = NULL;
 	//replace the last page with the new one
 	while(curr->next != NULL) //goto the last node
 	{
@@ -200,38 +166,33 @@ void addPageFiFo(int ref)
 int sizeList()
 {
 	int currSize = 0;
-	Page* curr = pageList;
-	if(curr->refernce == -1){
-		return 0;
+	PageFrame* curr = pageFrameList;
+
+	while(curr != NULL)
+	{
+		if (curr->pageNumber != -1) currSize++;
+		curr = curr->next;
 	}
 
-	while(curr->next != NULL && curr->refernce != -1)
-	{
-		curr = curr->next;
-		currSize++;
-	}
-	if(curr->refernce != -1){
-		currSize++;
-	}
 	return currSize;
 }
 
 void addToBack(int ref)
 {
-	Page* curr = pageList;
-	while(curr->next != NULL && curr->refernce != -1) //goto the last node
+	PageFrame* curr = pageFrameList;
+	while(curr->next != NULL && curr->pageNumber != -1) //goto the last node
 	{
 		curr = curr->next;
 	}
-	curr->refernce = ref;
+	curr->pageNumber = ref;
 	curr->time = lruCounter;
 }
 
 void replaceLRU(int ref)
 {
-	Page* curr = pageList;
+	PageFrame* curr = pageFrameList;
 	int oldestTime = 1000;
-	Page* toChange;
+	PageFrame* toChange;
 	while(curr->next != NULL ) //goto the last node
 	{
 		if(oldestTime > curr->time){
@@ -245,21 +206,21 @@ void replaceLRU(int ref)
 		oldestTime = curr->time;
 		toChange = curr;
 	}
-	toChange->refernce = ref;
+	toChange->pageNumber = ref;
 	toChange->time = lruCounter;
 }
 
 void updateTime(int ref)
 {
-	Page* curr = pageList;
-	if(curr->refernce == ref){
+	PageFrame* curr = pageFrameList;
+	if(curr->pageNumber == ref){
 		curr->time = lruCounter;
 		return;
 	}
 	while(curr->next != NULL ) //goto the last node
 	{
 		curr = curr->next;
-		if(curr->refernce == ref){
+		if(curr->pageNumber == ref){
 			curr->time = lruCounter;
 			return;
 		}
@@ -286,13 +247,13 @@ void fifo()
 	int pageStates[refStringSize][M+1];
 	for(int i = 0; i < refStringSize; i++)
 	{
-		if(inList(buffer[i]))
+		if(inList(referenceString[i]))
 		{
 			//no fault and do not add to list
 			pageStates[i][M] = 0;
 		} else {
 			//fault and add to list
-			addPageFiFo(buffer[i]);
+			addPageFiFo(referenceString[i]);
 			totalFaults++;
 			pageStates[i][M] = 1;
 		}
@@ -303,11 +264,11 @@ void fifo()
 }
 
 void calculatePageLabels(int currentReferenceIndex) {
-	Page* curr = pageList;
+	PageFrame* curr = pageFrameList;
 	while (curr != NULL) {
 		curr->label = -1;
 		for (int i = currentReferenceIndex; i < refStringSize; i++) {
-			if (buffer[i] == curr->refernce) {
+			if (referenceString[i] == curr->pageNumber) {
 				curr->label = i - currentReferenceIndex;
 				break;
 			}
@@ -316,9 +277,19 @@ void calculatePageLabels(int currentReferenceIndex) {
 	}
 }
 
-void swapOutHighestLabelPage(int pageReference) {
-	Page* curr = pageList;
-	Page* highestLabelPage = NULL;
+void swapOutHighestLabelPage(int pageNumber) {
+	PageFrame* curr = pageFrameList;
+	PageFrame* highestLabelPage = NULL;
+	// Look for free page first
+	while (curr != NULL) {
+		if (curr->pageNumber == -1) {
+			curr->pageNumber = pageNumber;
+			return;
+		}
+		curr = curr->next;
+	}
+
+	curr = pageFrameList;
 	while (curr != NULL) {
 		if (curr->label == -1) {
 			highestLabelPage = curr;
@@ -328,7 +299,7 @@ void swapOutHighestLabelPage(int pageReference) {
 		}
 		curr = curr->next;
 	}
-	highestLabelPage->refernce = pageReference;
+	highestLabelPage->pageNumber = pageNumber;
 }
 
 
@@ -339,10 +310,10 @@ void optimal()
 	int totalFaults = 0;
 	int pageStates[refStringSize][M+1];
 	for (int i = 0; i < refStringSize; i++) {
-		if (!inList(buffer[i])) {
+		if (!inList(referenceString[i])) {
 			totalFaults++;
 			calculatePageLabels(i);
-			swapOutHighestLabelPage(buffer[i]);
+			swapOutHighestLabelPage(referenceString[i]);
 			pageStates[i][M] = 1;
 		} else {
 			pageStates[i][M] = 0;
@@ -364,14 +335,14 @@ void leastUsed()
 	for(int i = 0; i < refStringSize; i++)
 	{
 
-		if(inList(buffer[i]))
+		if(inList(referenceString[i]))
 		{
 			//no fault just update the timer in the stored list
-			updateTime(buffer[i]);
+			updateTime(referenceString[i]);
 			pageStates[i][M] = 0;
 		} else {
 			//fault and add to list
-			addNewPageLRU(buffer[i]);
+			addNewPageLRU(referenceString[i]);
 			totalFaults++;
 			pageStates[i][M] = 1;
 		}
